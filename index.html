@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J28.2 Formatter</title>
+</head>
+
+<body>
+  <main>
+    <h1>J28.2 Formatter</h1>
+
+    <form id="formatter-form">
+      <fieldset>
+        <legend>Message setup</legend>
+
+        <p>
+          <label for="form-select">Form</label>
+          <select id="form-select"></select>
+        </p>
+
+        <p>
+          <label for="platform-select">Platform</label>
+          <select id="platform-select"></select>
+        </p>
+
+        <p>
+          <label for="mode-select">Line combination</label>
+          <select id="mode-select"></select>
+        </p>
+
+        <p id="platform-info"></p>
+        <p id="mode-info"></p>
+      </fieldset>
+
+      <fieldset>
+        <legend id="line-fields-heading">Form lines</legend>
+        <div id="line-fields"></div>
+      </fieldset>
+    </form>
+
+    <section aria-labelledby="output-heading">
+      <h2 id="output-heading">Formatted message</h2>
+      <p id="output-summary"></p>
+      <p>
+        <label for="output-text">Copyable output</label><br>
+        <textarea id="output-text" readonly spellcheck="false"></textarea>
+      </p>
+      <button id="copy-button" type="button">Copy message</button>
+
+      <dl>
+        <dt>Total characters</dt>
+        <dd id="total-characters">0</dd>
+        <dt>Display lines</dt>
+        <dd id="display-lines">0</dd>
+        <dt>Screen limit</dt>
+        <dd id="screen-limit">0</dd>
+        <dt>Characters per line</dt>
+        <dd id="characters-per-line">0</dd>
+      </dl>
+
+      <h3>Warnings</h3>
+      <ul id="warnings"></ul>
+
+      <h3>Platform display preview</h3>
+      <pre id="display-preview"></pre>
+
+      <h3>Indexed segments</h3>
+      <ol id="segments"></ol>
+    </section>
+
+    <section aria-labelledby="rules-heading">
+      <h2 id="rules-heading">Configured rules</h2>
+      <ul id="platform-rules"></ul>
+      <ul id="combination-rules"></ul>
+    </section>
+  </main>
+
+  <script>
+    // Project-specific definitions live here. Adding a platform or form should
+    // only require adding another entry to one of these registries.
+    const PLATFORM_DATA = {
+      f16: {
+        label: "F-16",
+        charsPerLine: 40,
+        screenLines: 12,
+        supportsDoubleSlash: true
+      },
+      f35: {
+        label: "F-35",
+        charsPerLine: 32,
+        screenLines: 6,
+        supportsDoubleSlash: false
+      },
+      f15: {
+        label: "F-15",
+        charsPerLine: 24,
+        screenLines: 10,
+        supportsDoubleSlash: true
+      },
+      a10: {
+        label: "A-10",
+        charsPerLine: 16,
+        screenLines: 5,
+        supportsDoubleSlash: true
+      }
+    };
+
+    const FORM_DATA = {
+      marshall: {
+        label: "Marshall",
+        lines: Array.from({length: 8}, (_, index) => ({
+          id: `marshall-${index + 1}`,
+          label: `Line ${index + 1}`,
+          description: "Lorem ipsum dolor si"
+        }))
+      },
+      dca: {
+        label: "DCA",
+        lines: Array.from({length: 4}, (_, index) => ({
+          id: `dca-${index + 1}`,
+          label: `Line ${index + 1}`,
+          description: "Lorem ipsum dolor si"
+        }))
+      }
+    };
+
+    const JOIN_MODES = {
+      lineBreak: {
+        label: "Line Break",
+        suffix: "//",
+        description: "Use // on platforms that interpret it; otherwise pad each line with spaces to the platform width."
+      },
+      singleSlash: {
+        label: "Single slash",
+        suffix: "/",
+        description: "Append one slash to each line with no added spacing."
+      },
+      dash: {
+        label: "Dash",
+        suffix: "-",
+        description: "Append one dash to each line with no added spacing."
+      }
+    };
+
+    const EOM = "EOM";
+    const state = {
+      formId: "marshall",
+      platformId: "f16",
+      modeId: "lineBreak",
+      values: Object.fromEntries(Object.keys(FORM_DATA).map((formId) => [
+        formId,
+        Array(FORM_DATA[formId].lines.length).fill("")
+      ]))
+    };
+
+    const elements = {
+      formSelect: document.querySelector("#form-select"),
+      platformSelect: document.querySelector("#platform-select"),
+      modeSelect: document.querySelector("#mode-select"),
+      platformInfo: document.querySelector("#platform-info"),
+      modeInfo: document.querySelector("#mode-info"),
+      lineFields: document.querySelector("#line-fields"),
+      lineFieldsHeading: document.querySelector("#line-fields-heading"),
+      outputSummary: document.querySelector("#output-summary"),
+      outputText: document.querySelector("#output-text"),
+      copyButton: document.querySelector("#copy-button"),
+      totalCharacters: document.querySelector("#total-characters"),
+      displayLines: document.querySelector("#display-lines"),
+      screenLimit: document.querySelector("#screen-limit"),
+      charactersPerLine: document.querySelector("#characters-per-line"),
+      warnings: document.querySelector("#warnings"),
+      displayPreview: document.querySelector("#display-preview"),
+      segments: document.querySelector("#segments"),
+      platformRules: document.querySelector("#platform-rules"),
+      combinationRules: document.querySelector("#combination-rules")
+    };
+
+    function populateSelect(select, definitions) {
+      Object.entries(definitions).forEach(([id, definition]) => {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = definition.label;
+        select.append(option);
+      });
+    }
+
+    function uppercase(value) {
+      return value.toLocaleUpperCase("en-US");
+    }
+
+    function countDoubleSlashes(value) {
+      return (value.match(/\/\//g) || []).length;
+    }
+
+    function createSegment(value, index, platform, mode) {
+      const content = uppercase(value);
+      const nativeLineBreak = mode === JOIN_MODES.lineBreak && platform.supportsDoubleSlash;
+      const paddedLineBreak = mode === JOIN_MODES.lineBreak && !platform.supportsDoubleSlash;
+      let text = content;
+      let displayLength = content.length;
+      let padding = 0;
+
+      if (nativeLineBreak) {
+        text += mode.suffix;
+      } else if (paddedLineBreak) {
+        if (content.length <= platform.charsPerLine) {
+          padding = platform.charsPerLine - content.length;
+          text += " ".repeat(padding);
+        }
+      } else {
+        text += mode.suffix;
+        displayLength += mode.suffix.length;
+      }
+
+      return {
+        index,
+        content,
+        text,
+        displayLength,
+        padding,
+        overWidth: displayLength > platform.charsPerLine
+      };
+    }
+
+    function wrappedLineCount(value, width) {
+      return Math.max(1, Math.ceil(Math.max(value.length, 1) / width));
+    }
+
+    function calculateDisplayLines(formatted, platform) {
+      if (platform.supportsDoubleSlash) {
+        return formatted.split("//").reduce(
+          (total, part) => total + wrappedLineCount(part, platform.charsPerLine),
+          0
+        );
+      }
+      return wrappedLineCount(formatted, platform.charsPerLine);
+    }
+
+    function displayPreview(formatted, platform) {
+      if (platform.supportsDoubleSlash) {
+        return formatted.split("//").map((part) => part || " ").join("\n");
+      }
+
+      const lines = [];
+      for (let index = 0; index < formatted.length; index += platform.charsPerLine) {
+        lines.push(formatted.slice(index, index + platform.charsPerLine));
+      }
+      return lines.join("\n");
+    }
+
+    function formatMessage() {
+      const form = FORM_DATA[state.formId];
+      const platform = PLATFORM_DATA[state.platformId];
+      const mode = JOIN_MODES[state.modeId];
+      const segments = state.values[state.formId].map((value, index) => (
+        createSegment(value, index, platform, mode)
+      ));
+      const formatted = `${segments.map((segment) => segment.text).join("")}${EOM}`;
+      const displayLines = calculateDisplayLines(formatted, platform);
+      const warnings = [];
+
+      segments.forEach((segment) => {
+        if (segment.overWidth) {
+          warnings.push(`Line ${segment.index + 1} exceeds the ${platform.charsPerLine}-character display width (${segment.displayLength} characters).`);
+        }
+        if (platform.supportsDoubleSlash && countDoubleSlashes(segment.content) > 0) {
+          warnings.push(`Line ${segment.index + 1} contains // and will create an additional display return.`);
+        }
+      });
+
+      if (state.modeId === "lineBreak" && !platform.supportsDoubleSlash) {
+        warnings.push(`${platform.label} does not interpret //; each line is padded with spaces to ${platform.charsPerLine} characters.`);
+      }
+      if (displayLines > platform.screenLines) {
+        warnings.push(`The formatted message uses ${displayLines} display lines, exceeding the ${platform.screenLines}-line screen limit.`);
+      }
+
+      return {form, platform, mode, segments, formatted, displayLines, warnings};
+    }
+
+    function renderLineFields() {
+      const form = FORM_DATA[state.formId];
+      const platform = PLATFORM_DATA[state.platformId];
+      elements.lineFields.replaceChildren();
+      elements.lineFieldsHeading.textContent = `${form.label} lines (${form.lines.length})`;
+
+      form.lines.forEach((line, index) => {
+        const wrapper = document.createElement("p");
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        const description = document.createElement("small");
+        const counter = document.createElement("span");
+
+        input.id = line.id;
+        input.type = "text";
+        input.autocomplete = "off";
+        input.spellcheck = false;
+        input.value = state.values[state.formId][index];
+        input.placeholder = `Enter ${line.label.toLowerCase()}`;
+        input.addEventListener("input", (event) => {
+          state.values[state.formId][index] = event.target.value;
+          renderOutput();
+        });
+
+        label.htmlFor = line.id;
+        label.textContent = `${String(index + 1).padStart(2, "0")} ${line.label}: `;
+        description.textContent = ` (${line.description}) `;
+        counter.id = `${line.id}-count`;
+        counter.textContent = `0 / ${platform.charsPerLine}`;
+
+        wrapper.append(label, description, input, " ", counter);
+        elements.lineFields.append(wrapper);
+      });
+    }
+
+    function renderOutput() {
+      const result = formatMessage();
+      elements.outputSummary.textContent = `${result.form.label} / ${result.platform.label} / ${result.mode.label}`;
+      elements.outputText.value = result.formatted;
+      elements.totalCharacters.textContent = result.formatted.length;
+      elements.displayLines.textContent = result.displayLines;
+      elements.screenLimit.textContent = result.platform.screenLines;
+      elements.charactersPerLine.textContent = result.platform.charsPerLine;
+      elements.displayPreview.textContent = displayPreview(result.formatted, result.platform);
+
+      elements.warnings.replaceChildren();
+      result.warnings.forEach((warning) => {
+        const item = document.createElement("li");
+        item.textContent = warning;
+        elements.warnings.append(item);
+      });
+
+      elements.segments.replaceChildren();
+      result.segments.forEach((segment) => {
+        const item = document.createElement("li");
+        item.textContent = `Line ${segment.index + 1}: ${segment.text || "(empty)"} (${segment.displayLength} display characters${segment.padding ? `, ${segment.padding} padding spaces` : ""})`;
+        elements.segments.append(item);
+
+        const counter = document.querySelector(`#${result.form.lines[segment.index].id}-count`);
+        if (counter) counter.textContent = `${segment.displayLength} / ${result.platform.charsPerLine}`;
+      });
+
+      const eom = document.createElement("li");
+      eom.textContent = `EOM: ${EOM}`;
+      elements.segments.append(eom);
+    }
+
+    function renderSetup() {
+      const platform = PLATFORM_DATA[state.platformId];
+      const mode = JOIN_MODES[state.modeId];
+      elements.formSelect.value = state.formId;
+      elements.platformSelect.value = state.platformId;
+      elements.modeSelect.value = state.modeId;
+      elements.platformInfo.textContent = `${platform.label}: ${platform.charsPerLine} characters per line, ${platform.screenLines} screen lines, // ${platform.supportsDoubleSlash ? "is a forced return" : "is not interpreted"}.`;
+      elements.modeInfo.textContent = mode.description;
+      renderLineFields();
+      renderOutput();
+    }
+
+    function renderRules() {
+      Object.entries(PLATFORM_DATA).forEach(([id, platform]) => {
+        const item = document.createElement("li");
+        item.textContent = `${platform.label} (${id}): ${platform.charsPerLine} characters per line; ${platform.screenLines} screen lines; // ${platform.supportsDoubleSlash ? "forces a return" : "does not force a return"}.`;
+        elements.platformRules.append(item);
+      });
+
+      Object.values(JOIN_MODES).forEach((mode) => {
+        const item = document.createElement("li");
+        item.textContent = `${mode.label} (${mode.suffix}): ${mode.description}`;
+        elements.combinationRules.append(item);
+      });
+    }
+
+    elements.formSelect.addEventListener("change", (event) => {
+      state.formId = event.target.value;
+      renderSetup();
+    });
+
+    elements.platformSelect.addEventListener("change", (event) => {
+      state.platformId = event.target.value;
+      renderSetup();
+    });
+
+    elements.modeSelect.addEventListener("change", (event) => {
+      state.modeId = event.target.value;
+      renderSetup();
+    });
+
+    elements.copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(elements.outputText.value);
+        elements.copyButton.textContent = "Copied";
+      } catch (error) {
+        elements.outputText.focus();
+        elements.outputText.select();
+        elements.copyButton.textContent = document.execCommand("copy") ? "Copied" : "Select and copy";
+      }
+      window.setTimeout(() => {elements.copyButton.textContent = "Copy message";}, 1600);
+    });
+
+    populateSelect(elements.formSelect, FORM_DATA);
+    populateSelect(elements.platformSelect, PLATFORM_DATA);
+    populateSelect(elements.modeSelect, JOIN_MODES);
+    renderRules();
+    renderSetup();
+  </script>
+</body>
+
+</html>
