@@ -7,31 +7,33 @@
   <style>
     :root {
       color-scheme: light;
-      --background: #f5f6f8;
+      --background: #f4f4f4;
       --surface: #ffffff;
-      --surface-muted: #eef1f4;
-      --text: #17202a;
-      --muted: #5d6975;
-      --border: #c9d0d7;
-      --accent: #245ea8;
+      --surface-muted: #eaeaea;
+      --text: #141414;
+      --muted: #6b6b6b;
+      --border: #cccccc;
+      --accent: #1f1f1f;
       --accent-text: #ffffff;
-      --focus: #4c8fe8;
-      --cockpit: #101820;
+      --focus: #4d4d4d;
+      --issue-error: #c00000;
+      --cockpit: #0a0a0a;
       --cockpit-text: #b8ffb8;
     }
 
     :root[data-theme="dark"] {
       color-scheme: dark;
-      --background: #11161c;
-      --surface: #1b222b;
-      --surface-muted: #252e38;
-      --text: #edf2f7;
-      --muted: #abb6c2;
-      --border: #45515e;
-      --accent: #75aef2;
-      --accent-text: #101820;
-      --focus: #91c1fa;
-      --cockpit: #080d11;
+      --background: #121212;
+      --surface: #1b1b1b;
+      --surface-muted: #262626;
+      --text: #f2f2f2;
+      --muted: #a9a9a9;
+      --border: #454545;
+      --accent: #ededed;
+      --accent-text: #121212;
+      --focus: #d6d6d6;
+      --issue-error: #ff6b6b;
+      --cockpit: #000000;
       --cockpit-text: #a8f5a8;
     }
 
@@ -43,7 +45,7 @@
       margin: 0;
       background: var(--background);
       color: var(--text);
-      font-family: system-ui, sans-serif;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size: 1rem;
       line-height: 1.5;
     }
@@ -62,7 +64,7 @@
     .data-panel,
     .output-panel {
       border: 1px solid var(--border);
-      border-radius: 0.4rem;
+      border-radius: 0.25rem;
     }
 
     button {
@@ -79,6 +81,7 @@
     button:focus-visible,
     select:focus-visible,
     textarea:focus-visible,
+    #output-text:focus-visible,
     #cockpit-display:focus-visible {
       outline: 3px solid var(--focus);
       outline-offset: 2px;
@@ -146,7 +149,7 @@
       flex: none;
       padding-right: 0.25rem;
       border: 1px solid var(--border);
-      border-radius: 0.65rem 0.65rem 0 0;
+      border-radius: 0.3rem 0.3rem 0 0;
       color: var(--muted);
       background: var(--surface-muted);
     }
@@ -159,7 +162,7 @@
 
     .tab-button {
       border: 0;
-      border-radius: 0.5rem;
+      border-radius: 0.25rem;
       background: transparent;
       white-space: nowrap;
       padding: 0.4rem 0.9rem;
@@ -174,7 +177,7 @@
       margin: 0.3rem;
       padding: 0.35rem 0.5rem;
       border: 1px solid var(--accent);
-      border-radius: 0.3rem;
+      border-radius: 0.2rem;
       background: var(--surface);
       color: var(--text);
       font: inherit;
@@ -196,7 +199,7 @@
       height: 1.5rem;
       padding: 0;
       border: 0;
-      border-radius: 0.3rem;
+      border-radius: 0.2rem;
       background: transparent;
       color: var(--muted);
       font-size: 0.95rem;
@@ -220,7 +223,7 @@
       height: 2.1rem;
       padding: 0;
       border: 0;
-      border-radius: 0.5rem;
+      border-radius: 0.25rem;
       background: transparent;
       color: var(--muted);
       font-size: 1.25rem;
@@ -247,7 +250,7 @@
       width: 5.5rem;
       height: 2.5rem;
       padding: 0.25rem;
-      border-radius: 2rem;
+      border-radius: 0.75rem;
     }
 
     #theme-toggle::before {
@@ -256,7 +259,7 @@
       left: 0.25rem;
       width: 1.9rem;
       height: 1.9rem;
-      border-radius: 50%;
+      border-radius: 0.3rem;
       background: var(--surface);
       box-shadow: 0 1px 4px #0003;
       transition: transform 180ms ease;
@@ -306,7 +309,7 @@
     .output-panel {
       margin: 0 0 0.75rem;
       padding: 0.85rem;
-      border-radius: 0.75rem;
+      border-radius: 0.4rem;
       background: var(--surface);
     }
 
@@ -364,16 +367,36 @@
     }
 
     .passage-field textarea {
-      min-height: 3rem;
-      resize: vertical;
-      font-size: 1.25rem;
+      min-height: calc(2.5rem + 2px);
+      overflow-y: hidden;
+      resize: none;
+      font-size: 1rem;
     }
 
     #output-text {
       display: block;
+      width: 100%;
       margin-bottom: 0.5rem;
-      min-height: 5rem;
-      resize: vertical;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .issue-illegal-character {
+      text-decoration-line: underline;
+      text-decoration-style: wavy;
+      text-decoration-color: var(--issue-error);
+      text-decoration-skip-ink: none;
+      text-underline-offset: 0.12em;
+    }
+
+    .issue-unintentional-line-split {
+      color: var(--issue-error);
     }
 
     #copy-button {
@@ -410,7 +433,7 @@
       gap: 0.45rem;
       padding: 0.45rem 0.75rem;
       border: 1px solid var(--border);
-      border-radius: 0.5rem;
+      border-radius: 0.25rem;
       background: var(--surface-muted);
       text-align: center;
       white-space: nowrap;
@@ -433,9 +456,75 @@
       color: var(--muted);
     }
 
+    .issue-summary {
+      display: grid;
+      gap: 0.35rem;
+      margin: 0 0 0.5rem;
+      padding: 0;
+      font-size: 0.85rem;
+      list-style: none;
+    }
+
+    .issue-summary li {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--issue-error);
+      border-radius: 0.25rem;
+      background: var(--surface);
+      color: var(--issue-error);
+    }
+
+    .issue-summary[hidden] {
+      display: none;
+    }
+
     .cockpit-viewport {
       max-width: 100%;
       overflow-x: auto;
+      padding: 0.35rem;
+    }
+
+    .cockpit-frame {
+      position: relative;
+      width: max-content;
+      padding: 1rem;
+      border: 1px solid #101010;
+      border-radius: 0.45rem;
+      background: linear-gradient(145deg, #4a4a4a 0%, #2d2d2d 42%, #181818 100%);
+      box-shadow:
+        0 0.35rem 0.75rem #0006,
+        inset 0.12rem 0.12rem 0.16rem #ffffff24,
+        inset -0.14rem -0.14rem 0.2rem #000a;
+    }
+
+    .cockpit-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0.2rem;
+      z-index: 2;
+      background:
+        radial-gradient(circle at 0.28rem 0.28rem, #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
+        radial-gradient(circle at calc(100% - 0.28rem) 0.28rem, #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
+        radial-gradient(circle at 0.28rem calc(100% - 0.28rem), #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
+        radial-gradient(circle at calc(100% - 0.28rem) calc(100% - 0.28rem), #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem);
+      pointer-events: none;
+    }
+
+    .cockpit-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0.76rem;
+      z-index: 2;
+      border: 0.25rem solid #111111;
+      border-radius: 0.2rem;
+      box-shadow:
+        inset 0 0 0.5rem #000c,
+        0 0 0 1px #5c5c5c;
+      pointer-events: none;
+    }
+
+    .cockpit-frame:has(#cockpit-display:focus-visible) {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
     }
 
     #cockpit-display-heading {
@@ -447,16 +536,21 @@
     #cockpit-display {
       --chars-per-line: 40;
       --screen-lines: 12;
-      width: calc((var(--chars-per-line) * 1ch) + 1.6rem + 2px);
-      height: calc((var(--screen-lines) * 1.5rem) + 1.6rem + 2px);
+      position: relative;
+      z-index: 1;
+      width: calc((var(--chars-per-line) * 1ch) + 1.6rem);
+      height: calc((var(--screen-lines) * 1.5rem) + 1.6rem);
       margin: 0;
       overflow: auto;
       padding: 0.8rem;
-      border: 1px solid var(--border);
-      border-radius: 0.4rem;
-      background: var(--cockpit);
+      border: 0;
+      border-radius: 0.1rem;
+      background:
+        linear-gradient(135deg, #ffffff0a 0%, transparent 32%),
+        radial-gradient(circle at 50% 42%, #151515 0%, var(--cockpit) 75%);
       color: var(--cockpit-text);
       font: 1rem/1.5rem ui-monospace, SFMono-Regular, Consolas, monospace;
+      text-shadow: 0 0 0.3rem #a8f5a866;
       white-space: pre;
     }
 
@@ -549,7 +643,7 @@
         <h2 id="output-heading">Output</h2>
         <button id="copy-button" type="button">Copy message</button>
       </div>
-      <textarea id="output-text" aria-label="Output" readonly spellcheck="false"></textarea>
+      <div id="output-text" role="textbox" aria-label="Output" aria-readonly="true" aria-multiline="true" tabindex="0"></div>
 
       <div class="message-stats" aria-live="polite">
         <div class="stat">
@@ -561,10 +655,13 @@
           <span class="stat-label">Messages</span>
         </div>
       </div>
+      <ul id="issue-summary" class="issue-summary" role="status" aria-live="polite" aria-atomic="true" hidden></ul>
 
       <h3 id="cockpit-display-heading">Display</h3>
       <div class="cockpit-viewport">
-        <pre id="cockpit-display" tabindex="0" aria-labelledby="cockpit-display-heading"></pre>
+        <div class="cockpit-frame">
+          <pre id="cockpit-display" tabindex="0" aria-labelledby="cockpit-display-heading"></pre>
+        </div>
       </div>
     </section>
   </main>
@@ -642,6 +739,7 @@
 
     // Maximum characters per message; used to derive the message count.
     const MESSAGE_LENGTH = 40;
+    const LEGAL_CHARACTERS = new Set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ./-");
 
     const state = {
       tabID: 0,
@@ -696,6 +794,7 @@
       copyButton: document.querySelector("#copy-button"),
       totalCharacters: document.querySelector("#total-characters"),
       messageCount: document.querySelector("#message-count"),
+      issueSummary: document.querySelector("#issue-summary"),
       cockpitDisplay: document.querySelector("#cockpit-display")
     };
 
@@ -945,11 +1044,15 @@
 
     function renderCockpitDisplay(formattedMessage) {
       const platform = PLATFORM_DATA[state.platformId];
+      const cockpitMessage = Array.from(formattedMessage, (character) =>
+        LEGAL_CHARACTERS.has(character) ? character : "~"
+      ).join("");
       const displayLines = platform.supportsDoubleSlash
-        ? formattedMessage.split("//").flatMap((passage) => wrapDisplayText(passage, platform.charsPerLine))
-        : wrapDisplayText(formattedMessage, platform.charsPerLine);
+        ? cockpitMessage.split("//").flatMap((passage) => wrapDisplayText(passage, platform.charsPerLine))
+        : wrapDisplayText(cockpitMessage, platform.charsPerLine);
 
       elements.cockpitDisplay.textContent = displayLines.join("\n");
+      return displayLines.length;
     }
 
     function formatMessage() {
@@ -960,6 +1063,137 @@
       passages.push("EOM");
 
       return combinePassages(passages, platform);
+    }
+
+    function reviewUnintentionalLineSplits(formattedMessage) {
+      const platform = PLATFORM_DATA[state.platformId];
+      const characters = Array.from(formattedMessage);
+      const issues = [];
+      let segmentStart = 0;
+
+      function reviewSegment(segmentEnd) {
+        let blockStart = segmentStart;
+
+        while (blockStart < segmentEnd) {
+          while (blockStart < segmentEnd && characters[blockStart] === " ") blockStart += 1;
+          if (blockStart === segmentEnd) break;
+
+          let blockEnd = blockStart + 1;
+          while (blockEnd < segmentEnd && characters[blockEnd] !== " ") blockEnd += 1;
+
+          const startColumn = blockStart - segmentStart;
+          const endColumn = blockEnd - segmentStart - 1;
+          const crossesLineBoundary = Math.floor(startColumn / platform.charsPerLine)
+            !== Math.floor(endColumn / platform.charsPerLine);
+
+          if (crossesLineBoundary) {
+            for (let index = blockStart; index < blockEnd; index += 1) {
+              issues.push({type: "unintentional-line-split", index});
+            }
+          }
+
+          blockStart = blockEnd;
+        }
+      }
+
+      if (platform.supportsDoubleSlash) {
+        for (let index = 0; index < characters.length - 1; index += 1) {
+          if (characters[index] !== "/" || characters[index + 1] !== "/") continue;
+          reviewSegment(index);
+          segmentStart = index + 2;
+          index += 1;
+        }
+      }
+
+      reviewSegment(characters.length);
+      return issues;
+    }
+
+    function reviewFormattedMessage(formattedMessage) {
+      const illegalCharacterIssues = Array.from(formattedMessage).flatMap((character, index) => {
+        if (LEGAL_CHARACTERS.has(character)) return [];
+        return [{type: "illegal-character", character, index}];
+      });
+
+      return [...illegalCharacterIssues, ...reviewUnintentionalLineSplits(formattedMessage)];
+    }
+
+    function renderReviewedOutput(formattedMessage, issues) {
+      const issuesByIndex = new Map();
+      issues.forEach((issue) => {
+        const issueTypes = issuesByIndex.get(issue.index) || new Set();
+        issueTypes.add(issue.type);
+        issuesByIndex.set(issue.index, issueTypes);
+      });
+      const output = document.createDocumentFragment();
+      const characters = Array.from(formattedMessage);
+
+      for (let index = 0; index < characters.length;) {
+        const character = characters[index];
+        const issueTypes = issuesByIndex.get(index);
+        if (!issueTypes) {
+          output.append(document.createTextNode(character));
+          index += 1;
+          continue;
+        }
+
+        let issueCharacters = character;
+        let nextIndex = index + 1;
+        const issueKey = [...issueTypes].sort().join(" ");
+        while ([...(issuesByIndex.get(nextIndex) || [])].sort().join(" ") === issueKey) {
+          issueCharacters += characters[nextIndex];
+          nextIndex += 1;
+        }
+
+        const issueText = document.createElement("span");
+        issueText.className = [...issueTypes].map((type) => `issue-${type}`).join(" ");
+        issueText.textContent = issueCharacters;
+        output.append(issueText);
+        index = nextIndex;
+      }
+
+      elements.outputText.replaceChildren(output);
+    }
+
+    function countIssueRuns(issues, type) {
+      const indexes = issues
+        .filter((issue) => issue.type === type)
+        .map((issue) => issue.index)
+        .sort((first, second) => first - second);
+
+      return indexes.reduce((count, index, position) => {
+        return count + (position === 0 || index !== indexes[position - 1] + 1 ? 1 : 0);
+      }, 0);
+    }
+
+    function renderIssueSummary(issues, displayLineCount) {
+      const platform = PLATFORM_DATA[state.platformId];
+      const illegalCharacterCount = issues.filter((issue) => issue.type === "illegal-character").length;
+      const splitBlockCount = countIssueRuns(issues, "unintentional-line-split");
+      const summaryItems = [];
+
+      if (illegalCharacterCount > 0) {
+        summaryItems.push(`${illegalCharacterCount} illegal ${illegalCharacterCount === 1 ? "character" : "characters"}`);
+      }
+      if (splitBlockCount > 0) {
+        summaryItems.push(`${splitBlockCount} split ${splitBlockCount === 1 ? "block" : "blocks"}`);
+      }
+      if (displayLineCount > platform.screenLines) {
+        summaryItems.push("Display scroll required");
+      }
+
+      elements.issueSummary.replaceChildren(...summaryItems.map((summary) => {
+        const item = document.createElement("li");
+        item.textContent = summary;
+        return item;
+      }));
+      elements.issueSummary.hidden = summaryItems.length === 0;
+    }
+
+    function autoSizeTextarea(textarea) {
+      textarea.style.height = "auto";
+      const borderHeight = textarea.offsetHeight - textarea.clientHeight;
+      textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
     }
 
     function renderPassageFields() {
@@ -977,12 +1211,13 @@
 
         wrapper.className = "passage-field";
         input.id = passageId;
-        input.rows = 3;
+        input.rows = 1;
         input.autocomplete = "off";
         input.spellcheck = false;
         input.value = state.values[state.formId][index];
         input.addEventListener("input", (event) => {
           state.values[state.formId][index] = event.target.value;
+          autoSizeTextarea(event.target);
           renderFormattedMessage();
         });
 
@@ -991,15 +1226,18 @@
 
         wrapper.append(label, input);
         elements.passageFields.append(wrapper);
+        autoSizeTextarea(input);
       });
     }
 
     function renderFormattedMessage() {
       const formatted = formatMessage();
-      elements.outputText.value = formatted;
+      const issues = reviewFormattedMessage(formatted);
+      renderReviewedOutput(formatted, issues);
       elements.totalCharacters.textContent = formatted.length;
       elements.messageCount.textContent = Math.ceil(formatted.length / MESSAGE_LENGTH);
-      renderCockpitDisplay(formatted);
+      const displayLineCount = renderCockpitDisplay(formatted);
+      renderIssueSummary(issues, displayLineCount);
     }
 
     function renderSetup() {
@@ -1034,12 +1272,17 @@
     });
 
     elements.copyButton.addEventListener("click", async () => {
+      const formatted = elements.outputText.textContent;
       try {
-        await navigator.clipboard.writeText(elements.outputText.value);
+        await navigator.clipboard.writeText(formatted);
         elements.copyButton.textContent = "Copied";
       } catch (error) {
         elements.outputText.focus();
-        elements.outputText.select();
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(elements.outputText);
+        selection.removeAllRanges();
+        selection.addRange(range);
         elements.copyButton.textContent = document.execCommand("copy") ? "Copied" : "Select and copy";
       }
       window.setTimeout(() => {elements.copyButton.textContent = "Copy message";}, 1600);
@@ -1048,6 +1291,10 @@
     elements.themeToggle.addEventListener("click", () => {
       const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       applyTheme(nextTheme);
+    });
+
+    window.addEventListener("resize", () => {
+      elements.passageFields.querySelectorAll("textarea").forEach(autoSizeTextarea);
     });
 
     elements.addTab.addEventListener("click", () => {
