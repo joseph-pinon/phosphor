@@ -189,6 +189,46 @@
       outline-offset: 1px;
     }
 
+    .delete-tab-dialog {
+      width: min(24rem, calc(100% - 2rem));
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 0.35rem;
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1rem 2.5rem #0008;
+    }
+
+    .delete-tab-dialog::backdrop {
+      background: #0009;
+    }
+
+    .delete-tab-dialog form {
+      padding: 1rem;
+    }
+
+    .delete-tab-dialog h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .delete-tab-dialog p {
+      margin-bottom: 1rem;
+      color: var(--muted);
+    }
+
+    .dialog-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    #confirm-delete-tab {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+
     .tab-button[aria-selected="true"] {
       color: var(--accent);
       font-weight: 650;
@@ -383,7 +423,7 @@
       background: var(--surface);
       color: var(--text);
       font: inherit;
-      white-space: pre-wrap;
+      white-space: break-spaces;
       overflow-wrap: anywhere;
     }
 
@@ -554,6 +594,16 @@
       white-space: pre;
     }
 
+    .harvestable-coordinate {
+      color: #59b8ff;
+      text-decoration: underline;
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 0.1em;
+      text-underline-offset: 0.12em;
+      text-decoration-skip-ink: none;
+      text-shadow: 0 0 0.3rem #59b8ff88;
+    }
+
     @media (max-width: 48rem) {
       main {
         grid-template-columns: 1fr;
@@ -666,6 +716,17 @@
     </section>
   </main>
 
+  <dialog id="delete-tab-dialog" class="delete-tab-dialog" aria-labelledby="delete-tab-heading" aria-describedby="delete-tab-description">
+    <form method="dialog">
+      <h2 id="delete-tab-heading">Delete tab?</h2>
+      <p id="delete-tab-description">This action cannot be undone.</p>
+      <div class="dialog-actions">
+        <button id="cancel-delete-tab" type="button">Cancel</button>
+        <button id="confirm-delete-tab" type="button">Delete tab</button>
+      </div>
+    </form>
+  </dialog>
+
   <script>
     // Project-specific definitions live here. Adding a platform or form should
     // only require adding another entry to one of these registries.
@@ -674,25 +735,29 @@
         label: "F-16",
         charsPerLine: 40,
         screenLines: 12,
-        supportsDoubleSlash: true
+        supportsDoubleSlash: true,
+        harvestableCoordinatePattern: /\d{2}[A-Z] [A-Z]{2}\d \d{3} \d{3} \d{3}/g
       },
       {
         label: "F-35",
         charsPerLine: 32,
         screenLines: 6,
-        supportsDoubleSlash: false
+        supportsDoubleSlash: false,
+        harvestableCoordinatePattern: /\d{2}[A-Z] [A-Z]{2} \d{5} \d{5}/g
       },
       {
         label: "F-15",
         charsPerLine: 24,
         screenLines: 10,
-        supportsDoubleSlash: true
+        supportsDoubleSlash: true,
+        harvestableCoordinatePattern: /\d{2}[A-Z] [A-Z]{2} \d{5} \d{5}/g
       },
       {
         label: "A-10",
         charsPerLine: 16,
         screenLines: 5,
-        supportsDoubleSlash: true
+        supportsDoubleSlash: true,
+        harvestableCoordinatePattern: /\d{2}[A-Z] [A-Z]{2}\d \d{3} \d{3} \d{3}/g
       }
     ];
 
@@ -722,6 +787,7 @@
     ];
 
     let nextTabNumber = 1;
+    let pendingTabDeletion = null;
 
     function createTabState() {
       return {
@@ -795,7 +861,11 @@
       totalCharacters: document.querySelector("#total-characters"),
       messageCount: document.querySelector("#message-count"),
       issueSummary: document.querySelector("#issue-summary"),
-      cockpitDisplay: document.querySelector("#cockpit-display")
+      cockpitDisplay: document.querySelector("#cockpit-display"),
+      deleteTabDialog: document.querySelector("#delete-tab-dialog"),
+      deleteTabHeading: document.querySelector("#delete-tab-heading"),
+      cancelDeleteTab: document.querySelector("#cancel-delete-tab"),
+      confirmDeleteTab: document.querySelector("#confirm-delete-tab")
     };
 
     function populateSelect(select, definitions) {
@@ -862,6 +932,29 @@
       }
       renderTabs();
       activateTab(state.tabID, true);
+    }
+
+    function requestTabDeletion(tabID, trigger) {
+      const tab = state.tabs[tabID];
+      pendingTabDeletion = {tabID, trigger};
+      elements.deleteTabHeading.textContent = `Delete “${tab.name}”?`;
+      elements.deleteTabDialog.returnValue = "";
+      elements.deleteTabDialog.showModal();
+      elements.cancelDeleteTab.focus({preventScroll: true});
+    }
+
+    function cancelTabDeletion() {
+      const deletion = pendingTabDeletion;
+      pendingTabDeletion = null;
+      elements.deleteTabDialog.close();
+      if (deletion?.trigger.isConnected) deletion.trigger.focus({preventScroll: true});
+    }
+
+    function confirmTabDeletion() {
+      const deletion = pendingTabDeletion;
+      pendingTabDeletion = null;
+      elements.deleteTabDialog.close();
+      if (deletion) closeTab(deletion.tabID);
     }
 
     function renameTab(tabID) {
@@ -950,7 +1043,7 @@
           closeButton.type = "button";
           closeButton.textContent = "×";
           closeButton.setAttribute("aria-label", `Close ${tab.name}`);
-          closeButton.addEventListener("click", () => closeTab(tabID));
+          closeButton.addEventListener("click", () => requestTabDeletion(tabID, closeButton));
           item.append(closeButton);
         }
 
@@ -1001,7 +1094,8 @@
       const sections = formatted.split("//");
       return sections.map((section, sectionIndex) => {
         const isFinalSection = sectionIndex === sections.length - 1;
-        return isFinalSection ? section : padToWidth(section, platform.charsPerLine);
+        if (isFinalSection) return section;
+        return section ? padToWidth(section, platform.charsPerLine) : " ".repeat(platform.charsPerLine);
       }).join("");
     }
 
@@ -1042,16 +1136,73 @@
       return displayLines;
     }
 
+    function wrapDisplayTextWithContext(text, width) {
+      return wrapDisplayText(text, width).map((line, lineIndex) => {
+        const start = lineIndex * width;
+        return {
+          line,
+          precedingCharacter: text[start - 1] || "",
+          followingCharacter: text[start + line.length] || ""
+        };
+      });
+    }
+
+    function harvestableCoordinateRanges(line, pattern, precedingLineCharacter, followingLineCharacter) {
+      const ranges = [];
+      pattern.lastIndex = 0;
+
+      for (const match of line.matchAll(pattern)) {
+        const start = match.index;
+        const end = start + match[0].length;
+        const precedingCharacter = start === 0 ? precedingLineCharacter : line[start - 1];
+        const followingCharacter = end === line.length ? followingLineCharacter : line[end];
+        const hasValidStartBoundary = !precedingCharacter || !/[A-Z0-9]/.test(precedingCharacter);
+        const hasValidEndBoundary = !followingCharacter || !/[A-Z0-9]/.test(followingCharacter);
+
+        if (hasValidStartBoundary && hasValidEndBoundary) ranges.push({start, end});
+      }
+
+      return ranges;
+    }
+
+    function renderCockpitLine(line, pattern, precedingCharacter, followingCharacter) {
+      const lineOutput = document.createDocumentFragment();
+      const ranges = harvestableCoordinateRanges(line, pattern, precedingCharacter, followingCharacter);
+      let cursor = 0;
+
+      ranges.forEach(({start, end}) => {
+        lineOutput.append(document.createTextNode(line.slice(cursor, start)));
+        const coordinate = document.createElement("span");
+        coordinate.className = "harvestable-coordinate";
+        coordinate.textContent = line.slice(start, end);
+        lineOutput.append(coordinate);
+        cursor = end;
+      });
+
+      lineOutput.append(document.createTextNode(line.slice(cursor)));
+      return lineOutput;
+    }
+
     function renderCockpitDisplay(formattedMessage) {
       const platform = PLATFORM_DATA[state.platformId];
       const cockpitMessage = Array.from(formattedMessage, (character) =>
         LEGAL_CHARACTERS.has(character) ? character : "~"
       ).join("");
       const displayLines = platform.supportsDoubleSlash
-        ? cockpitMessage.split("//").flatMap((passage) => wrapDisplayText(passage, platform.charsPerLine))
-        : wrapDisplayText(cockpitMessage, platform.charsPerLine);
+        ? cockpitMessage.split("//").flatMap((passage) => wrapDisplayTextWithContext(passage, platform.charsPerLine))
+        : wrapDisplayTextWithContext(cockpitMessage, platform.charsPerLine);
 
-      elements.cockpitDisplay.textContent = displayLines.join("\n");
+      const displayOutput = document.createDocumentFragment();
+      displayLines.forEach(({line, precedingCharacter, followingCharacter}, index) => {
+        if (index > 0) displayOutput.append(document.createTextNode("\n"));
+        displayOutput.append(renderCockpitLine(
+          line,
+          platform.harvestableCoordinatePattern,
+          precedingCharacter,
+          followingCharacter
+        ));
+      });
+      elements.cockpitDisplay.replaceChildren(displayOutput);
       return displayLines.length;
     }
 
@@ -1301,6 +1452,13 @@
       state.tabs.push(createTabState());
       renderTabs();
       activateTab(state.tabs.length - 1, true);
+    });
+
+    elements.cancelDeleteTab.addEventListener("click", cancelTabDeletion);
+    elements.confirmDeleteTab.addEventListener("click", confirmTabDeletion);
+    elements.deleteTabDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      cancelTabDeletion();
     });
 
     populateSelect(elements.formSelect, FORM_DATA);
