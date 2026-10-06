@@ -482,7 +482,7 @@
 
     .stat-value {
       display: inline;
-      font-size: 1.5rem;
+      font-size: 1rem;
       font-weight: 700;
       line-height: 1.2;
       color: var(--accent);
@@ -521,46 +521,25 @@
     .cockpit-viewport {
       max-width: 100%;
       overflow-x: auto;
-      padding: 0.35rem;
+      padding: 0.2rem;
     }
 
     .cockpit-frame {
       position: relative;
       width: max-content;
-      padding: 1rem;
-      border: 1px solid #101010;
-      border-radius: 0.45rem;
-      background: linear-gradient(145deg, #4a4a4a 0%, #2d2d2d 42%, #181818 100%);
-      box-shadow:
-        0 0.35rem 0.75rem #0006,
-        inset 0.12rem 0.12rem 0.16rem #ffffff24,
-        inset -0.14rem -0.14rem 0.2rem #000a;
+      padding: 0.65rem;
+      border: 1px solid #606060;
+      border-radius: 0.2rem;
+      background: #2c2c2c;
+      box-shadow: 0 0.2rem 0.45rem #0005;
     }
 
     .cockpit-frame::before {
-      content: "";
-      position: absolute;
-      inset: 0.2rem;
-      z-index: 2;
-      background:
-        radial-gradient(circle at 0.28rem 0.28rem, #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
-        radial-gradient(circle at calc(100% - 0.28rem) 0.28rem, #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
-        radial-gradient(circle at 0.28rem calc(100% - 0.28rem), #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem),
-        radial-gradient(circle at calc(100% - 0.28rem) calc(100% - 0.28rem), #777777 0 0.08rem, #151515 0.1rem 0.17rem, transparent 0.19rem);
-      pointer-events: none;
+      content: none;
     }
 
     .cockpit-frame::after {
-      content: "";
-      position: absolute;
-      inset: 0.76rem;
-      z-index: 2;
-      border: 0.25rem solid #111111;
-      border-radius: 0.2rem;
-      box-shadow:
-        inset 0 0 0.5rem #000c,
-        0 0 0 1px #5c5c5c;
-      pointer-events: none;
+      content: none;
     }
 
     .cockpit-frame:has(#cockpit-display:focus-visible) {
@@ -584,14 +563,14 @@
       margin: 0;
       overflow: auto;
       padding: 0.8rem;
-      border: 0;
-      border-radius: 0.1rem;
-      background:
-        linear-gradient(135deg, #ffffff0a 0%, transparent 32%),
-        radial-gradient(circle at 50% 42%, #151515 0%, var(--cockpit) 75%);
+      border: 1px solid #090909;
+      border-radius: 0.08rem;
+      background: var(--cockpit);
       color: var(--cockpit-text);
       font: 1rem/1.5rem ui-monospace, SFMono-Regular, Consolas, monospace;
-      text-shadow: 0 0 0.3rem #a8f5a866;
+      box-shadow: inset 0 0 0 1px #444444;
+      scrollbar-color: #606060 #090909;
+      text-shadow: 0 0 0.18rem #a8f5a84d;
       white-space: pre;
     }
 
