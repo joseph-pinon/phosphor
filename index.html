@@ -4,68 +4,494 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>J28.2 Formatter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #f5f6f8;
+      --surface: #ffffff;
+      --surface-muted: #eef1f4;
+      --text: #17202a;
+      --muted: #5d6975;
+      --border: #c9d0d7;
+      --accent: #245ea8;
+      --accent-text: #ffffff;
+      --focus: #4c8fe8;
+      --cockpit: #101820;
+      --cockpit-text: #b8ffb8;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #11161c;
+      --surface: #1b222b;
+      --surface-muted: #252e38;
+      --text: #edf2f7;
+      --muted: #abb6c2;
+      --border: #45515e;
+      --accent: #75aef2;
+      --accent-text: #101820;
+      --focus: #91c1fa;
+      --cockpit: #080d11;
+      --cockpit-text: #a8f5a8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    button,
+    select,
+    textarea {
+      color: inherit;
+      font: inherit;
+    }
+
+    button,
+    select,
+    textarea,
+    .settings-panel,
+    .data-panel,
+    .output-panel {
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+    }
+
+    button {
+      min-height: 2.5rem;
+      padding: 0.45rem 0.8rem;
+      background: var(--surface-muted);
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    #cockpit-display:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .app-header {
+      background: var(--surface);
+      box-shadow: inset 0 -1px var(--border);
+    }
+
+    .header-top,
+    .tab-bar,
+    main {
+      width: min(75rem, calc(100% - 2rem));
+      margin-inline: auto;
+    }
+
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-block: 1.5rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h1 {
+      margin-bottom: 0;
+    }
+
+    .tab-bar,
+    #tab-list,
+    .tab-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .tab-bar {
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    #tab-list {
+      gap: 0.3rem;
+      min-width: 0;
+      overflow-x: auto;
+      padding: 0.25rem 0.25rem 0;
+    }
+
+    .tab-item {
+      flex: none;
+      padding-right: 0.25rem;
+      border: 1px solid var(--border);
+      border-radius: 0.65rem 0.65rem 0 0;
+      color: var(--muted);
+      background: var(--surface-muted);
+    }
+
+    .tab-item:has([aria-selected="true"]) {
+      border-bottom-color: var(--background);
+      color: var(--text);
+      background: var(--background);
+    }
+
+    .tab-button {
+      border: 0;
+      border-radius: 0.5rem;
+      background: transparent;
+      white-space: nowrap;
+      padding: 0.65rem 0.9rem;
+      max-width: 16rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tab-name-input {
+      width: 12rem;
+      min-width: 0;
+      margin: 0.3rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--accent);
+      border-radius: 0.3rem;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+    }
+
+    .tab-name-input:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 1px;
+    }
+
+    .tab-button[aria-selected="true"] {
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    .close-tab {
+      min-width: 2.5rem;
+      padding: 0;
+      border: 0;
+      border-radius: 0.4rem;
+      background: transparent;
+      font-size: 1.25rem;
+    }
+
+    .close-tab:hover {
+      background: var(--surface-muted);
+      color: var(--text);
+    }
+
+    #add-tab {
+      margin-bottom: 0.25rem;
+      flex: none;
+      width: 2.75rem;
+      height: 2.75rem;
+      padding: 0;
+      border-style: dashed;
+      border-radius: 0.65rem;
+      background: transparent;
+      font-size: 1.5rem;
+    }
+
+    #theme-toggle {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex: none;
+      width: 5.5rem;
+      height: 2.75rem;
+      padding: 0.25rem;
+      border-radius: 2rem;
+    }
+
+    #theme-toggle::before {
+      content: "";
+      position: absolute;
+      left: 0.25rem;
+      width: 2.15rem;
+      height: 2.15rem;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: 0 1px 4px #0003;
+      transition: transform 180ms ease;
+    }
+
+    :root[data-theme="dark"] #theme-toggle::before {
+      transform: translateX(2.7rem);
+    }
+
+    #theme-toggle svg {
+      position: relative;
+      width: 1.2rem;
+      height: 1.2rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      color: var(--muted);
+    }
+
+    :root:not([data-theme="dark"]) .sun-icon,
+    :root[data-theme="dark"] .moon-icon {
+      color: var(--accent) !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #theme-toggle::before {
+        transition: none;
+      }
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.8fr);
+      gap: 1.5rem;
+      padding-block: 1.5rem 3rem;
+    }
+
+    .input-column,
+    .settings-panel,
+    .data-panel,
+    .output-panel {
+      min-width: 0;
+    }
+
+    .settings-panel,
+    .data-panel,
+    .output-panel {
+      margin: 0 0 1.5rem;
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      background: var(--surface);
+    }
+
+    .settings-panel h2,
+    .data-panel h2,
+    .output-panel h2 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .output-panel {
+      position: sticky;
+      top: 1rem;
+      align-self: start;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+
+    .setup-grid p,
+    .passage-field {
+      margin-bottom: 0;
+    }
+
+    label,
+    small {
+      display: block;
+    }
+
+    label {
+      margin-bottom: 0.5rem;
+      font-weight: 650;
+    }
+
+    small,
+    #cockpit-display-summary {
+      color: var(--muted);
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border-color: var(--border);
+      background: var(--surface);
+    }
+
+    #passage-fields {
+      display: grid;
+      gap: 1.75rem;
+    }
+
+    .passage-field small {
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+    }
+
+    .passage-field textarea {
+      min-height: 5rem;
+      resize: vertical;
+      font-size: 1.25rem;
+    }
+
+    #output-text {
+      display: block;
+      margin-bottom: 1rem;
+      min-height: 8rem;
+      resize: vertical;
+    }
+
+    #copy-button {
+      margin-bottom: 0.75rem;
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--accent-text);
+    }
+
+    .cockpit-viewport {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    #cockpit-display-heading {
+      margin: 1.75rem 0 0.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    #cockpit-display-summary {
+      margin-bottom: 1rem;
+    }
+
+    #cockpit-display {
+      --chars-per-line: 40;
+      --screen-lines: 12;
+      width: calc((var(--chars-per-line) * 1ch) + 1.6rem + 2px);
+      height: calc((var(--screen-lines) * 1.5rem) + 1.6rem + 2px);
+      margin: 0;
+      overflow: auto;
+      padding: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+      background: var(--cockpit);
+      color: var(--cockpit-text);
+      font: 1rem/1.5rem ui-monospace, SFMono-Regular, Consolas, monospace;
+      white-space: pre;
+    }
+
+    @media (max-width: 48rem) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 34rem) {
+      .settings-panel,
+      .data-panel,
+      .output-panel {
+        padding: 1rem;
+      }
+
+      .header-top {
+        align-items: flex-start;
+      }
+
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <main>
-    <h1>J28.2 Formatter</h1>
+  <header class="app-header">
+    <div class="header-top">
+      <h1>J28.2 Formatter</h1>
+      <button id="theme-toggle" type="button" aria-label="Switch to dark mode">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z"/></svg>
+      </button>
+    </div>
+    <nav class="tab-bar" aria-label="Messages">
+      <div id="tab-list" role="tablist" aria-label="Message tabs"></div>
+      <button id="add-tab" type="button" aria-label="Add message tab" title="Add message tab">+</button>
+    </nav>
+  </header>
 
-    <form id="formatter-form">
-      <fieldset>
-        <legend>Message setup</legend>
+  <main id="formatter-workspace" role="tabpanel" aria-labelledby="message-tab-0">
 
-        <p>
-          <label for="form-select">Form</label>
-          <select id="form-select"></select>
-        </p>
+    <div id="formatter-form" class="input-column">
+      <section class="settings-panel" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Message setup</h2>
+        <div class="setup-grid">
+          <p>
+            <label for="form-select">Form</label>
+            <select id="form-select"></select>
+          </p>
 
-        <p>
-          <label for="platform-select">Platform</label>
-          <select id="platform-select"></select>
-        </p>
+          <p>
+            <label for="platform-select">Platform</label>
+            <select id="platform-select"></select>
+          </p>
 
-        <p>
-          <label for="mode-select">Line combination</label>
-          <select id="mode-select">
-            <option value="lineBreak">Line Break</option>
-            <option value="singleSlash">Single slash</option>
-            <option value="dash">Dash</option>
-          </select>
-        </p>
+          <p>
+            <label for="mode-select">Line combination</label>
+            <select id="mode-select">
+              <option value="lineBreak">Line Break</option>
+              <option value="singleSlash">Single slash</option>
+              <option value="dash">Dash</option>
+            </select>
+          </p>
 
-        <p>
-          <label for="prefix-select">Passage prefix</label>
-          <select id="prefix-select">
-            <option value="indexSpace">Index with space</option>
-            <option value="indexPeriod">Index with period</option>
-            <option value="indexDash">Index with dash</option>
-            <option value="alphaSpace">Alphabetical with space</option>
-            <option value="alphaPeriod">Alphabetical with period</option>
-            <option value="alphaDash">Alphabetical with dash</option>
-            <option value="none">None</option>
-          </select>
-        </p>
+          <p>
+            <label for="prefix-select">Passage prefix</label>
+            <select id="prefix-select">
+              <option value="indexSpace">Index with space</option>
+              <option value="indexPeriod">Index with period</option>
+              <option value="indexDash">Index with dash</option>
+              <option value="alphaSpace">Alphabetical with space</option>
+              <option value="alphaPeriod">Alphabetical with period</option>
+              <option value="alphaDash">Alphabetical with dash</option>
+              <option value="none">None</option>
+            </select>
+          </p>
+        </div>
+      </section>
 
-      </fieldset>
-
-      <fieldset>
-        <legend id="passage-fields-heading">Form passages</legend>
+      <section class="data-panel" aria-labelledby="passage-fields-heading">
+        <h2 id="passage-fields-heading">Data Input</h2>
         <div id="passage-fields"></div>
-      </fieldset>
-    </form>
+      </section>
+    </div>
 
-    <section aria-labelledby="output-heading">
+    <section class="output-panel" aria-labelledby="output-heading">
       <h2 id="output-heading">Formatted message</h2>
-      <p>
-        <label for="output-text">Copyable output</label><br>
-        <textarea id="output-text" readonly spellcheck="false"></textarea>
-      </p>
+      <textarea id="output-text" aria-label="Formatted message" readonly spellcheck="false"></textarea>
       <button id="copy-button" type="button">Copy message</button>
 
       <p>Total characters: <span id="total-characters">0</span></p>
 
       <h3 id="cockpit-display-heading">Cockpit display</h3>
       <p id="cockpit-display-summary"></p>
-      <pre id="cockpit-display"></pre>
+      <div class="cockpit-viewport">
+        <pre id="cockpit-display" tabindex="0" aria-labelledby="cockpit-display-heading"></pre>
+      </div>
     </section>
   </main>
 
@@ -124,20 +550,25 @@
       }
     ];
 
+    let nextTabNumber = 1;
+
+    function createTabState() {
+      return {
+        name: `Message ${nextTabNumber++}`,
+        formId: 0,
+        platformId: 0,
+        modeId: "lineBreak",
+        prefixId: "none",
+        values: Object.fromEntries(FORM_DATA.map((form, formId) => [
+          formId,
+          Array(form.passages.length).fill("")
+        ]))
+      };
+    }
+
     const state = {
       tabID: 0,
-      tabs: [
-        {
-          formId: 0,
-          platformId: 0,
-          modeId: "lineBreak",
-          prefixId: "none",
-          values: Object.fromEntries(FORM_DATA.map((form, formId) => [
-            formId,
-            Array(form.passages.length).fill("")
-          ]))
-        }
-      ],
+      tabs: [createTabState()],
       get activeTab() {
         return this.tabs[this.tabID];
       },
@@ -174,6 +605,10 @@
     };
 
     const elements = {
+      workspace: document.querySelector("#formatter-workspace"),
+      themeToggle: document.querySelector("#theme-toggle"),
+      tabList: document.querySelector("#tab-list"),
+      addTab: document.querySelector("#add-tab"),
       formSelect: document.querySelector("#form-select"),
       platformSelect: document.querySelector("#platform-select"),
       modeSelect: document.querySelector("#mode-select"),
@@ -194,6 +629,159 @@
         option.textContent = definition.label;
         select.append(option);
       });
+    }
+
+    function applyTheme(theme) {
+      const isDark = theme === "dark";
+      document.documentElement.dataset.theme = theme;
+      elements.themeToggle.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+      elements.themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+      try {
+        localStorage.setItem("j282-theme", theme);
+      } catch (error) {
+        // The theme still applies when storage is unavailable.
+      }
+    }
+
+    function initializeTheme() {
+      let theme = "light";
+      try {
+        const savedTheme = localStorage.getItem("j282-theme");
+        if (savedTheme === "light" || savedTheme === "dark") {
+          theme = savedTheme;
+        } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          theme = "dark";
+        }
+      } catch (error) {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          theme = "dark";
+        }
+      }
+      applyTheme(theme);
+    }
+
+    function activateTab(tabID, moveFocus = false) {
+      state.tabID = tabID;
+      elements.tabList.querySelectorAll('[role="tab"]').forEach((button, index) => {
+        const isActive = index === tabID;
+        button.setAttribute("aria-selected", String(isActive));
+        button.tabIndex = isActive ? 0 : -1;
+      });
+      elements.workspace.setAttribute("aria-labelledby", `message-tab-${tabID}`);
+      renderSetup();
+
+      if (moveFocus) {
+        document.querySelector(`#message-tab-${state.tabID}`).focus();
+      }
+    }
+
+    function closeTab(tabID) {
+      if (state.tabs.length === 1) return;
+
+      state.tabs.splice(tabID, 1);
+      if (state.tabID > tabID) {
+        state.tabID -= 1;
+      } else if (state.tabID === tabID) {
+        state.tabID = Math.min(tabID, state.tabs.length - 1);
+      }
+      renderTabs();
+      activateTab(state.tabID, true);
+    }
+
+    function renameTab(tabID) {
+      const button = document.querySelector(`#message-tab-${tabID}`);
+      if (button.hidden) return;
+      const tab = state.tabs[tabID];
+      const input = document.createElement("input");
+      input.className = "tab-name-input";
+      input.value = tab.name;
+      input.setAttribute("aria-label", "Message tab name");
+      let finished = false;
+      const finish = (save, restoreFocus) => {
+        if (finished) return;
+        finished = true;
+        if (save && input.value.trim()) tab.name = input.value.trim();
+        button.textContent = tab.name;
+        button.title = `${tab.name} — Double-click or press F2 to rename`;
+        const closeButton = button.parentElement.querySelector(".close-tab");
+        if (closeButton) closeButton.setAttribute("aria-label", `Close ${tab.name}`);
+        button.hidden = false;
+        input.remove();
+        if (restoreFocus) button.focus();
+      };
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === "Escape") {
+          event.preventDefault();
+          finish(event.key === "Enter", true);
+        }
+      });
+      input.addEventListener("blur", () => finish(true, false));
+      button.hidden = true;
+      button.after(input);
+      input.focus();
+      input.select();
+    }
+
+    function handleTabKeydown(event, tabID) {
+      if (event.key === "F2") {
+        event.preventDefault();
+        renameTab(tabID);
+        return;
+      }
+      let nextTabID;
+      if (event.key === "ArrowLeft") {
+        nextTabID = (tabID - 1 + state.tabs.length) % state.tabs.length;
+      } else if (event.key === "ArrowRight") {
+        nextTabID = (tabID + 1) % state.tabs.length;
+      } else if (event.key === "Home") {
+        nextTabID = 0;
+      } else if (event.key === "End") {
+        nextTabID = state.tabs.length - 1;
+      } else {
+        return;
+      }
+
+      event.preventDefault();
+      activateTab(nextTabID, true);
+    }
+
+    function renderTabs() {
+      elements.tabList.replaceChildren();
+
+      state.tabs.forEach((tab, tabID) => {
+        const isActive = tabID === state.tabID;
+        const item = document.createElement("span");
+        const tabButton = document.createElement("button");
+
+        item.className = "tab-item";
+        tabButton.id = `message-tab-${tabID}`;
+        tabButton.className = "tab-button";
+        tabButton.type = "button";
+        tabButton.setAttribute("role", "tab");
+        tabButton.textContent = tab.name;
+        tabButton.title = `${tab.name} — Double-click or press F2 to rename`;
+        tabButton.tabIndex = isActive ? 0 : -1;
+        tabButton.setAttribute("aria-selected", String(isActive));
+        tabButton.setAttribute("aria-controls", "formatter-workspace");
+        tabButton.addEventListener("click", () => activateTab(tabID, true));
+        tabButton.addEventListener("dblclick", () => renameTab(tabID));
+        tabButton.addEventListener("keydown", (event) => handleTabKeydown(event, tabID));
+        item.append(tabButton);
+
+        if (state.tabs.length > 1) {
+          const closeButton = document.createElement("button");
+          closeButton.className = "close-tab";
+          closeButton.type = "button";
+          closeButton.textContent = "×";
+          closeButton.setAttribute("aria-label", `Close ${tab.name}`);
+          closeButton.addEventListener("click", () => closeTab(tabID));
+          item.append(closeButton);
+        }
+
+        elements.tabList.append(item);
+      });
+
+      elements.workspace.setAttribute("aria-labelledby", `message-tab-${state.tabID}`);
     }
 
     function uppercase(value) {
@@ -310,11 +898,12 @@
         const passageId = `form-${state.formId}-passage-${passageNumber}`;
         const wrapper = document.createElement("p");
         const label = document.createElement("label");
-        const input = document.createElement("input");
+        const input = document.createElement("textarea");
         const description = document.createElement("small");
 
+        wrapper.className = "passage-field";
         input.id = passageId;
-        input.type = "text";
+        input.rows = 3;
         input.autocomplete = "off";
         input.spellcheck = false;
         input.value = state.values[state.formId][index];
@@ -341,6 +930,12 @@
     }
 
     function renderSetup() {
+      elements.formSelect.value = String(state.formId);
+      elements.platformSelect.value = String(state.platformId);
+      elements.modeSelect.value = state.modeId;
+      elements.prefixSelect.value = state.prefixId;
+      elements.cockpitDisplay.style.setProperty("--chars-per-line", PLATFORM_DATA[state.platformId].charsPerLine);
+      elements.cockpitDisplay.style.setProperty("--screen-lines", PLATFORM_DATA[state.platformId].screenLines);
       renderPassageFields();
       renderFormattedMessage();
     }
@@ -377,8 +972,21 @@
       window.setTimeout(() => {elements.copyButton.textContent = "Copy message";}, 1600);
     });
 
+    elements.themeToggle.addEventListener("click", () => {
+      const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      applyTheme(nextTheme);
+    });
+
+    elements.addTab.addEventListener("click", () => {
+      state.tabs.push(createTabState());
+      renderTabs();
+      activateTab(state.tabs.length - 1, true);
+    });
+
     populateSelect(elements.formSelect, FORM_DATA);
     populateSelect(elements.platformSelect, PLATFORM_DATA);
+    initializeTheme();
+    renderTabs();
     renderSetup();
   </script>
 </body>
