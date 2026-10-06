@@ -425,6 +425,7 @@
       font: inherit;
       white-space: break-spaces;
       overflow-wrap: anywhere;
+      word-break: break-all;
     }
 
     .issue-illegal-character {
@@ -1085,11 +1086,11 @@
 
     function formatPassage(value, index) {
       const platform = PLATFORM_DATA[state.platformId];
-      const text = uppercase(value.trim());
+      const text = uppercase(value.trim().replace(/\r\n|\r|\n/g, "//"));
       if (!text) return null;
 
       const formatted = `${passagePrefix(state.prefixId, index)}${text}`;
-      if (platform.supportsDoubleSlash || !value.includes("//")) return formatted;
+      if (platform.supportsDoubleSlash || !formatted.includes("//")) return formatted;
 
       const sections = formatted.split("//");
       return sections.map((section, sectionIndex) => {
