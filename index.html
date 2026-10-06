@@ -745,23 +745,30 @@
       {
         label: "Marshall",
         passages: [
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si"
+          {label: "Name and ATO Day", type: "text"},
+          {
+            label: "Mission Status",
+            type: "select",
+            options: [
+              {label: "Mission Successful", text: "Succ"},
+              {label: "Mission Failure", text: "Fail"}
+            ]
+          },
+          {label: "Tanker Status", type: "text"},
+          {label: "Friendly Aircraft", type: "text"},
+          {label: "Munitions Expended", type: "text"},
+          {label: "Timing Targets", type: "text"},
+          {label: "Test", type: "text"},
+          {label: "Admin/Remarks", type: "text"}
         ]
       },
       {
         label: "DCA",
         passages: [
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si",
-          "Lorem ipsum dolor si"
+          {label: "Lorem ipsum dolor si", type: "text"},
+          {label: "Lorem ipsum dolor si", type: "text"},
+          {label: "Lorem ipsum dolor si", type: "text"},
+          {label: "Lorem ipsum dolor si", type: "text"}
         ]
       }
     ];
@@ -775,7 +782,7 @@
         formId: 0,
         platformId: 0,
         modeId: "lineBreak",
-        prefixId: "none",
+        prefixId: "indexPeriod",
         values: Object.fromEntries(FORM_DATA.map((form, formId) => [
           formId,
           Array(form.passages.length).fill("")
@@ -1188,12 +1195,22 @@
 
     function formatMessage() {
       const platform = PLATFORM_DATA[state.platformId];
+      const form = FORM_DATA[state.formId];
       const passages = state.values[state.formId]
-        .map((value, index) => formatPassage(value, index))
+        .map((value, index) => formatPassage(resolvePassageText(form.passages[index], value), index))
         .filter(Boolean);
       passages.push("EOM");
 
       return combinePassages(passages, platform);
+    }
+
+    function resolvePassageText(passage, value) {
+      if (passage.type !== "select") return value;
+      if (value === "" || !Array.isArray(passage.options)) return "";
+
+      const optionIndex = Number(value);
+      if (!Number.isInteger(optionIndex)) return "";
+      return passage.options[optionIndex]?.text || "";
     }
 
     function reviewUnintentionalLineSplits(formattedMessage) {
@@ -1334,21 +1351,37 @@
 
       form.passages.forEach((passage, index) => {
         const passageNumber = index + 1;
-        const passageLabel = `${passageNumber}. ${passage}`;
+        const passageLabel = `${passageNumber}. ${passage.label}`;
         const passageId = `form-${state.formId}-passage-${passageNumber}`;
         const wrapper = document.createElement("p");
         const label = document.createElement("label");
-        const input = document.createElement("textarea");
+        const input = document.createElement(passage.type === "select" ? "select" : "textarea");
 
         wrapper.className = "passage-field";
         input.id = passageId;
-        input.rows = 1;
-        input.autocomplete = "off";
-        input.spellcheck = false;
+        if (passage.type === "select") {
+          const emptyOption = document.createElement("option");
+          emptyOption.value = "";
+          emptyOption.textContent = "Select an option";
+          input.append(emptyOption);
+
+          if (Array.isArray(passage.options)) {
+            passage.options.forEach((option, optionIndex) => {
+              const optionElement = document.createElement("option");
+              optionElement.value = String(optionIndex);
+              optionElement.textContent = option?.label || "";
+              input.append(optionElement);
+            });
+          }
+        } else {
+          input.rows = 1;
+          input.autocomplete = "off";
+          input.spellcheck = false;
+        }
         input.value = state.values[state.formId][index];
-        input.addEventListener("input", (event) => {
+        input.addEventListener(passage.type === "select" ? "change" : "input", (event) => {
           state.values[state.formId][index] = event.target.value;
-          autoSizeTextarea(event.target);
+          if (event.target instanceof HTMLTextAreaElement) autoSizeTextarea(event.target);
           renderFormattedMessage();
         });
 
@@ -1357,7 +1390,7 @@
 
         wrapper.append(label, input);
         elements.passageFields.append(wrapper);
-        autoSizeTextarea(input);
+        if (input instanceof HTMLTextAreaElement) autoSizeTextarea(input);
       });
     }
 
