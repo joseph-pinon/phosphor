@@ -1,12 +1,10 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>J28.2 Formatter</title>
 </head>
-
 <body>
   <main>
     <h1>J28.2 Formatter</h1>
@@ -27,154 +25,166 @@
 
         <p>
           <label for="mode-select">Line combination</label>
-          <select id="mode-select"></select>
+          <select id="mode-select">
+            <option value="lineBreak">Line Break</option>
+            <option value="singleSlash">Single slash</option>
+            <option value="dash">Dash</option>
+          </select>
         </p>
 
-        <p id="platform-info"></p>
-        <p id="mode-info"></p>
+        <p>
+          <label for="prefix-select">Passage prefix</label>
+          <select id="prefix-select">
+            <option value="indexSpace">Index with space</option>
+            <option value="indexPeriod">Index with period</option>
+            <option value="indexDash">Index with dash</option>
+            <option value="alphaSpace">Alphabetical with space</option>
+            <option value="alphaPeriod">Alphabetical with period</option>
+            <option value="alphaDash">Alphabetical with dash</option>
+            <option value="none">None</option>
+          </select>
+        </p>
+
       </fieldset>
 
       <fieldset>
-        <legend id="line-fields-heading">Form lines</legend>
-        <div id="line-fields"></div>
+        <legend id="passage-fields-heading">Form passages</legend>
+        <div id="passage-fields"></div>
       </fieldset>
     </form>
 
     <section aria-labelledby="output-heading">
       <h2 id="output-heading">Formatted message</h2>
-      <p id="output-summary"></p>
       <p>
         <label for="output-text">Copyable output</label><br>
         <textarea id="output-text" readonly spellcheck="false"></textarea>
       </p>
       <button id="copy-button" type="button">Copy message</button>
 
-      <dl>
-        <dt>Total characters</dt>
-        <dd id="total-characters">0</dd>
-        <dt>Display lines</dt>
-        <dd id="display-lines">0</dd>
-        <dt>Screen limit</dt>
-        <dd id="screen-limit">0</dd>
-        <dt>Characters per line</dt>
-        <dd id="characters-per-line">0</dd>
-      </dl>
+      <p>Total characters: <span id="total-characters">0</span></p>
 
-      <h3>Warnings</h3>
-      <ul id="warnings"></ul>
-
-      <h3>Platform display preview</h3>
-      <pre id="display-preview"></pre>
-
-      <h3>Indexed segments</h3>
-      <ol id="segments"></ol>
-    </section>
-
-    <section aria-labelledby="rules-heading">
-      <h2 id="rules-heading">Configured rules</h2>
-      <ul id="platform-rules"></ul>
-      <ul id="combination-rules"></ul>
+      <h3 id="cockpit-display-heading">Cockpit display</h3>
+      <p id="cockpit-display-summary"></p>
+      <pre id="cockpit-display"></pre>
     </section>
   </main>
 
   <script>
     // Project-specific definitions live here. Adding a platform or form should
     // only require adding another entry to one of these registries.
-    const PLATFORM_DATA = {
-      f16: {
+    const PLATFORM_DATA = [
+      {
         label: "F-16",
         charsPerLine: 40,
         screenLines: 12,
         supportsDoubleSlash: true
       },
-      f35: {
+      {
         label: "F-35",
         charsPerLine: 32,
         screenLines: 6,
         supportsDoubleSlash: false
       },
-      f15: {
+      {
         label: "F-15",
         charsPerLine: 24,
         screenLines: 10,
         supportsDoubleSlash: true
       },
-      a10: {
+      {
         label: "A-10",
         charsPerLine: 16,
         screenLines: 5,
         supportsDoubleSlash: true
       }
-    };
+    ];
 
-    const FORM_DATA = {
-      marshall: {
+    const FORM_DATA = [
+      {
         label: "Marshall",
-        lines: Array.from({length: 8}, (_, index) => ({
-          id: `marshall-${index + 1}`,
-          label: `Line ${index + 1}`,
-          description: "Lorem ipsum dolor si"
-        }))
+        passages: [
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si"
+        ]
       },
-      dca: {
+      {
         label: "DCA",
-        lines: Array.from({length: 4}, (_, index) => ({
-          id: `dca-${index + 1}`,
-          label: `Line ${index + 1}`,
-          description: "Lorem ipsum dolor si"
-        }))
+        passages: [
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si",
+          "Lorem ipsum dolor si"
+        ]
       }
-    };
+    ];
 
-    const JOIN_MODES = {
-      lineBreak: {
-        label: "Line Break",
-        suffix: "//",
-        description: "Use // on platforms that interpret it; otherwise pad each line with spaces to the platform width."
-      },
-      singleSlash: {
-        label: "Single slash",
-        suffix: "/",
-        description: "Append one slash to each line with no added spacing."
-      },
-      dash: {
-        label: "Dash",
-        suffix: "-",
-        description: "Append one dash to each line with no added spacing."
-      }
-    };
-
-    const EOM = "EOM";
     const state = {
-      formId: "marshall",
-      platformId: "f16",
-      modeId: "lineBreak",
-      values: Object.fromEntries(Object.keys(FORM_DATA).map((formId) => [
-        formId,
-        Array(FORM_DATA[formId].lines.length).fill("")
-      ]))
+      tabID: 0,
+      tabs: [
+        {
+          formId: 0,
+          platformId: 0,
+          modeId: "lineBreak",
+          prefixId: "none",
+          values: Object.fromEntries(FORM_DATA.map((form, formId) => [
+            formId,
+            Array(form.passages.length).fill("")
+          ]))
+        }
+      ],
+      get activeTab() {
+        return this.tabs[this.tabID];
+      },
+      get formId() {
+        return this.activeTab.formId;
+      },
+      set formId(value) {
+        this.activeTab.formId = value;
+      },
+      get platformId() {
+        return this.activeTab.platformId;
+      },
+      set platformId(value) {
+        this.activeTab.platformId = value;
+      },
+      get modeId() {
+        return this.activeTab.modeId;
+      },
+      set modeId(value) {
+        this.activeTab.modeId = value;
+      },
+      get prefixId() {
+        return this.activeTab.prefixId;
+      },
+      set prefixId(value) {
+        this.activeTab.prefixId = value;
+      },
+      get values() {
+        return this.activeTab.values;
+      },
+      set values(value) {
+        this.activeTab.values = value;
+      }
     };
 
     const elements = {
       formSelect: document.querySelector("#form-select"),
       platformSelect: document.querySelector("#platform-select"),
       modeSelect: document.querySelector("#mode-select"),
-      platformInfo: document.querySelector("#platform-info"),
-      modeInfo: document.querySelector("#mode-info"),
-      lineFields: document.querySelector("#line-fields"),
-      lineFieldsHeading: document.querySelector("#line-fields-heading"),
-      outputSummary: document.querySelector("#output-summary"),
+      prefixSelect: document.querySelector("#prefix-select"),
+      passageFields: document.querySelector("#passage-fields"),
+      passageFieldsHeading: document.querySelector("#passage-fields-heading"),
       outputText: document.querySelector("#output-text"),
       copyButton: document.querySelector("#copy-button"),
       totalCharacters: document.querySelector("#total-characters"),
-      displayLines: document.querySelector("#display-lines"),
-      screenLimit: document.querySelector("#screen-limit"),
-      charactersPerLine: document.querySelector("#characters-per-line"),
-      warnings: document.querySelector("#warnings"),
-      displayPreview: document.querySelector("#display-preview"),
-      segments: document.querySelector("#segments"),
-      platformRules: document.querySelector("#platform-rules"),
-      combinationRules: document.querySelector("#combination-rules")
+      cockpitDisplaySummary: document.querySelector("#cockpit-display-summary"),
+      cockpitDisplay: document.querySelector("#cockpit-display")
     };
 
     function populateSelect(select, definitions) {
@@ -190,202 +200,169 @@
       return value.toLocaleUpperCase("en-US");
     }
 
-    function countDoubleSlashes(value) {
-      return (value.match(/\/\//g) || []).length;
+    function lettersForIndex(index) {
+      let number = index + 1;
+      let result = "";
+      while (number > 0) {
+        number -= 1;
+        result = String.fromCharCode(65 + (number % 26)) + result;
+        number = Math.floor(number / 26);
+      }
+      return result;
     }
 
-    function createSegment(value, index, platform, mode) {
-      const content = uppercase(value);
-      const nativeLineBreak = mode === JOIN_MODES.lineBreak && platform.supportsDoubleSlash;
-      const paddedLineBreak = mode === JOIN_MODES.lineBreak && !platform.supportsDoubleSlash;
-      let text = content;
-      let displayLength = content.length;
-      let padding = 0;
+    function passagePrefix(prefixId, passageIndex) {
+      const number = String(passageIndex + 1);
+      const letter = lettersForIndex(passageIndex);
 
-      if (nativeLineBreak) {
-        text += mode.suffix;
-      } else if (paddedLineBreak) {
-        if (content.length <= platform.charsPerLine) {
-          padding = platform.charsPerLine - content.length;
-          text += " ".repeat(padding);
+      switch (prefixId) {
+        case "indexSpace": return `${number} `;
+        case "indexPeriod": return `${number}.`;
+        case "indexDash": return `${number}-`;
+        case "alphaSpace": return `${letter} `;
+        case "alphaPeriod": return `${letter}.`;
+        case "alphaDash": return `${letter}-`;
+        default: return "";
+      }
+    }
+
+    function formatPassage(value, index) {
+      const platform = PLATFORM_DATA[state.platformId];
+      const text = uppercase(value.trim());
+      if (!text) return null;
+
+      const formatted = `${passagePrefix(state.prefixId, index)}${text}`;
+      if (platform.supportsDoubleSlash || !value.includes("//")) return formatted;
+
+      const sections = formatted.split("//");
+      return sections.map((section, sectionIndex) => {
+        const isFinalSection = sectionIndex === sections.length - 1;
+        return isFinalSection ? section : padToWidth(section, platform.charsPerLine);
+      }).join("");
+    }
+
+    function padToWidth(value, width) {
+      const padding = width - (value.length % width || width);
+      return padding === width ? value : `${value}${" ".repeat(padding)}`;
+    }
+
+    function combinePassages(passages, platform) {
+      if (passages.length === 0) return "";
+
+      if (state.modeId === "lineBreak") {
+        if (platform.supportsDoubleSlash) {
+          return passages.join("//");
         }
-      } else {
-        text += mode.suffix;
-        displayLength += mode.suffix.length;
+
+        return passages.map((passage, index) => {
+          const isFinalPassage = index === passages.length - 1;
+          if (isFinalPassage) return passage;
+          return padToWidth(passage, platform.charsPerLine);
+        }).join("");
       }
 
-      return {
-        index,
-        content,
-        text,
-        displayLength,
-        padding,
-        overWidth: displayLength > platform.charsPerLine
-      };
+      const suffix = state.modeId === "singleSlash" ? "/" : "-";
+      return passages.map((passage, index) => {
+        const isFinalPassage = index === passages.length - 1;
+        return isFinalPassage ? passage : `${passage}${suffix}`;
+      }).join("");
     }
 
-    function wrappedLineCount(value, width) {
-      return Math.max(1, Math.ceil(Math.max(value.length, 1) / width));
+    function wrapDisplayText(text, width) {
+      if (!text) return [""];
+
+      const displayLines = [];
+      for (let index = 0; index < text.length; index += width) {
+        displayLines.push(text.slice(index, index + width));
+      }
+      return displayLines;
     }
 
-    function calculateDisplayLines(formatted, platform) {
-      if (platform.supportsDoubleSlash) {
-        return formatted.split("//").reduce(
-          (total, part) => total + wrappedLineCount(part, platform.charsPerLine),
-          0
-        );
-      }
-      return wrappedLineCount(formatted, platform.charsPerLine);
-    }
+    function renderCockpitDisplay(formattedMessage) {
+      const platform = PLATFORM_DATA[state.platformId];
+      const displayLines = platform.supportsDoubleSlash
+        ? formattedMessage.split("//").flatMap((passage) => wrapDisplayText(passage, platform.charsPerLine))
+        : wrapDisplayText(formattedMessage, platform.charsPerLine);
+      const scrollLines = Math.max(0, displayLines.length - platform.screenLines);
 
-    function displayPreview(formatted, platform) {
-      if (platform.supportsDoubleSlash) {
-        return formatted.split("//").map((part) => part || " ").join("\n");
-      }
-
-      const lines = [];
-      for (let index = 0; index < formatted.length; index += platform.charsPerLine) {
-        lines.push(formatted.slice(index, index + platform.charsPerLine));
-      }
-      return lines.join("\n");
+      elements.cockpitDisplay.textContent = displayLines.join("\n");
+      elements.cockpitDisplaySummary.textContent = `${displayLines.length} display lines; ${platform.screenLines} visible without scrolling${scrollLines ? `; ${scrollLines} require scrolling.` : "."}`;
     }
 
     function formatMessage() {
-      const form = FORM_DATA[state.formId];
       const platform = PLATFORM_DATA[state.platformId];
-      const mode = JOIN_MODES[state.modeId];
-      const segments = state.values[state.formId].map((value, index) => (
-        createSegment(value, index, platform, mode)
-      ));
-      const formatted = `${segments.map((segment) => segment.text).join("")}${EOM}`;
-      const displayLines = calculateDisplayLines(formatted, platform);
-      const warnings = [];
+      const passages = state.values[state.formId]
+        .map((value, index) => formatPassage(value, index))
+        .filter(Boolean);
+      passages.push("EOM");
 
-      segments.forEach((segment) => {
-        if (segment.overWidth) {
-          warnings.push(`Line ${segment.index + 1} exceeds the ${platform.charsPerLine}-character display width (${segment.displayLength} characters).`);
-        }
-        if (platform.supportsDoubleSlash && countDoubleSlashes(segment.content) > 0) {
-          warnings.push(`Line ${segment.index + 1} contains // and will create an additional display return.`);
-        }
-      });
-
-      if (state.modeId === "lineBreak" && !platform.supportsDoubleSlash) {
-        warnings.push(`${platform.label} does not interpret //; each line is padded with spaces to ${platform.charsPerLine} characters.`);
-      }
-      if (displayLines > platform.screenLines) {
-        warnings.push(`The formatted message uses ${displayLines} display lines, exceeding the ${platform.screenLines}-line screen limit.`);
-      }
-
-      return {form, platform, mode, segments, formatted, displayLines, warnings};
+      return combinePassages(passages, platform);
     }
 
-    function renderLineFields() {
+    function renderPassageFields() {
       const form = FORM_DATA[state.formId];
-      const platform = PLATFORM_DATA[state.platformId];
-      elements.lineFields.replaceChildren();
-      elements.lineFieldsHeading.textContent = `${form.label} lines (${form.lines.length})`;
+      elements.passageFields.replaceChildren();
+      elements.passageFieldsHeading.textContent = "Data Input";
 
-      form.lines.forEach((line, index) => {
+      form.passages.forEach((passage, index) => {
+        const passageNumber = index + 1;
+        const passageLabel = `${passageNumber}. `;
+        const passageId = `form-${state.formId}-passage-${passageNumber}`;
         const wrapper = document.createElement("p");
         const label = document.createElement("label");
         const input = document.createElement("input");
         const description = document.createElement("small");
-        const counter = document.createElement("span");
 
-        input.id = line.id;
+        input.id = passageId;
         input.type = "text";
         input.autocomplete = "off";
         input.spellcheck = false;
         input.value = state.values[state.formId][index];
-        input.placeholder = `Enter ${line.label.toLowerCase()}`;
+        input.placeholder = `Enter ${passageLabel.toLowerCase()}`;
         input.addEventListener("input", (event) => {
           state.values[state.formId][index] = event.target.value;
-          renderOutput();
+          renderFormattedMessage();
         });
 
-        label.htmlFor = line.id;
-        label.textContent = `${String(index + 1).padStart(2, "0")} ${line.label}: `;
-        description.textContent = ` (${line.description}) `;
-        counter.id = `${line.id}-count`;
-        counter.textContent = `0 / ${platform.charsPerLine}`;
+        label.htmlFor = passageId;
+        label.textContent = passageLabel;
+        description.textContent = passage;
 
-        wrapper.append(label, description, input, " ", counter);
-        elements.lineFields.append(wrapper);
+        wrapper.append(label, description, input);
+        elements.passageFields.append(wrapper);
       });
     }
 
-    function renderOutput() {
-      const result = formatMessage();
-      elements.outputSummary.textContent = `${result.form.label} / ${result.platform.label} / ${result.mode.label}`;
-      elements.outputText.value = result.formatted;
-      elements.totalCharacters.textContent = result.formatted.length;
-      elements.displayLines.textContent = result.displayLines;
-      elements.screenLimit.textContent = result.platform.screenLines;
-      elements.charactersPerLine.textContent = result.platform.charsPerLine;
-      elements.displayPreview.textContent = displayPreview(result.formatted, result.platform);
-
-      elements.warnings.replaceChildren();
-      result.warnings.forEach((warning) => {
-        const item = document.createElement("li");
-        item.textContent = warning;
-        elements.warnings.append(item);
-      });
-
-      elements.segments.replaceChildren();
-      result.segments.forEach((segment) => {
-        const item = document.createElement("li");
-        item.textContent = `Line ${segment.index + 1}: ${segment.text || "(empty)"} (${segment.displayLength} display characters${segment.padding ? `, ${segment.padding} padding spaces` : ""})`;
-        elements.segments.append(item);
-
-        const counter = document.querySelector(`#${result.form.lines[segment.index].id}-count`);
-        if (counter) counter.textContent = `${segment.displayLength} / ${result.platform.charsPerLine}`;
-      });
-
-      const eom = document.createElement("li");
-      eom.textContent = `EOM: ${EOM}`;
-      elements.segments.append(eom);
+    function renderFormattedMessage() {
+      const formatted = formatMessage();
+      elements.outputText.value = formatted;
+      elements.totalCharacters.textContent = formatted.length;
+      renderCockpitDisplay(formatted);
     }
 
     function renderSetup() {
-      const platform = PLATFORM_DATA[state.platformId];
-      const mode = JOIN_MODES[state.modeId];
-      elements.formSelect.value = state.formId;
-      elements.platformSelect.value = state.platformId;
-      elements.modeSelect.value = state.modeId;
-      elements.platformInfo.textContent = `${platform.label}: ${platform.charsPerLine} characters per line, ${platform.screenLines} screen lines, // ${platform.supportsDoubleSlash ? "is a forced return" : "is not interpreted"}.`;
-      elements.modeInfo.textContent = mode.description;
-      renderLineFields();
-      renderOutput();
-    }
-
-    function renderRules() {
-      Object.entries(PLATFORM_DATA).forEach(([id, platform]) => {
-        const item = document.createElement("li");
-        item.textContent = `${platform.label} (${id}): ${platform.charsPerLine} characters per line; ${platform.screenLines} screen lines; // ${platform.supportsDoubleSlash ? "forces a return" : "does not force a return"}.`;
-        elements.platformRules.append(item);
-      });
-
-      Object.values(JOIN_MODES).forEach((mode) => {
-        const item = document.createElement("li");
-        item.textContent = `${mode.label} (${mode.suffix}): ${mode.description}`;
-        elements.combinationRules.append(item);
-      });
+      renderPassageFields();
+      renderFormattedMessage();
     }
 
     elements.formSelect.addEventListener("change", (event) => {
-      state.formId = event.target.value;
+      state.formId = Number(event.target.value);
       renderSetup();
     });
 
     elements.platformSelect.addEventListener("change", (event) => {
-      state.platformId = event.target.value;
+      state.platformId = Number(event.target.value);
       renderSetup();
     });
 
     elements.modeSelect.addEventListener("change", (event) => {
       state.modeId = event.target.value;
-      renderSetup();
+      renderFormattedMessage();
+    });
+
+    elements.prefixSelect.addEventListener("change", (event) => {
+      state.prefixId = event.target.value;
+      renderFormattedMessage();
     });
 
     elements.copyButton.addEventListener("click", async () => {
@@ -402,10 +379,7 @@
 
     populateSelect(elements.formSelect, FORM_DATA);
     populateSelect(elements.platformSelect, PLATFORM_DATA);
-    populateSelect(elements.modeSelect, JOIN_MODES);
-    renderRules();
     renderSetup();
   </script>
 </body>
-
 </html>
