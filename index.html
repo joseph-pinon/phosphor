@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>J28.2 Formatter</title>
+  <title>Phosphor — J28.2 Formatter</title>
   <style>
     :root {
       color-scheme: light;
+      --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       --background: #f4f4f4;
       --surface: #ffffff;
       --surface-muted: #eaeaea;
@@ -19,6 +20,7 @@
       --issue-error: #c00000;
       --cockpit: #0a0a0a;
       --cockpit-text: #b8ffb8;
+      --sticky-header-height: 0px;
     }
 
     :root[data-theme="dark"] {
@@ -41,11 +43,15 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-padding-top: calc(var(--sticky-header-height) + 0.75rem);
+    }
+
     body {
       margin: 0;
       background: var(--background);
       color: var(--text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-family: var(--mono-font);
       font-size: 1rem;
       line-height: 1.5;
     }
@@ -88,8 +94,13 @@
     }
 
     .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
       background: var(--surface);
       box-shadow: inset 0 -1px var(--border);
+      font-family: var(--mono-font);
+      font-variant-ligatures: none;
     }
 
     .header-top,
@@ -121,8 +132,61 @@
       font-size: 1.5rem;
     }
 
-    h1 {
-      margin-bottom: 0;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+    }
+
+    .brand-glyph {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      flex: none;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--surface-muted);
+      color: var(--accent);
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-indent: 0.08em;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      line-height: 1.15;
+    }
+
+    .brand-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--text);
+    }
+
+    .brand-tagline {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    @media (max-width: 34rem) {
+      .brand-name {
+        font-size: 1.15rem;
+        letter-spacing: 0.16em;
+      }
+
+      .brand-tagline {
+        font-size: 0.65rem;
+      }
     }
 
     .tab-bar,
@@ -282,37 +346,27 @@
     }
 
     #theme-toggle {
-      position: relative;
       display: flex;
       align-items: center;
-      justify-content: space-around;
+      justify-content: center;
       flex: none;
-      width: 5.5rem;
-      height: 2.5rem;
-      padding: 0.25rem;
-      border-radius: 0.75rem;
+      width: 2rem;
+      min-height: 2rem;
+      height: 2rem;
+      padding: 0.4rem;
+      border-radius: 0.25rem;
+      background: var(--surface-muted);
     }
 
     #theme-toggle::before {
-      content: "";
-      position: absolute;
-      left: 0.25rem;
-      width: 1.9rem;
-      height: 1.9rem;
-      border-radius: 0.3rem;
-      background: var(--surface);
-      box-shadow: 0 1px 4px #0003;
-      transition: transform 180ms ease;
-    }
-
-    :root[data-theme="dark"] #theme-toggle::before {
-      transform: translateX(2.8rem);
+      content: none;
     }
 
     #theme-toggle svg {
       position: relative;
-      width: 1.2rem;
-      height: 1.2rem;
+      z-index: 1;
+      width: 1rem;
+      height: 1rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 1.75;
@@ -322,6 +376,11 @@
     :root:not([data-theme="dark"]) .sun-icon,
     :root[data-theme="dark"] .moon-icon {
       color: var(--accent) !important;
+    }
+
+    :root:not([data-theme="dark"]) .moon-icon,
+    :root[data-theme="dark"] .sun-icon {
+      display: none;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -362,7 +421,7 @@
 
     .output-panel {
       position: sticky;
-      top: 0.75rem;
+      top: calc(var(--sticky-header-height) + 0.75rem);
       align-self: start;
     }
 
@@ -527,6 +586,7 @@
     .cockpit-frame {
       position: relative;
       width: max-content;
+      margin-inline: auto;
       padding: 0.65rem;
       border: 1px solid #606060;
       border-radius: 0.2rem;
@@ -610,7 +670,13 @@
 <body>
   <header class="app-header">
     <div class="header-top">
-      <h1>FORMATTER</h1>
+      <div class="brand">
+        <span class="brand-glyph" aria-hidden="true">//</span>
+        <span class="brand-text">
+          <span class="brand-name">PHOSPHOR</span>
+          <span class="brand-tagline">J28.2 Message Formatter</span>
+        </span>
+      </div>
       <button id="theme-toggle" type="button" aria-label="Switch to dark mode">
         <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
         <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z"/></svg>
@@ -835,6 +901,7 @@
     const elements = {
       workspace: document.querySelector("#formatter-workspace"),
       themeToggle: document.querySelector("#theme-toggle"),
+      appHeader: document.querySelector(".app-header"),
       tabList: document.querySelector("#tab-list"),
       addTab: document.querySelector("#add-tab"),
       formSelect: document.querySelector("#form-select"),
@@ -1457,8 +1524,13 @@
       applyTheme(nextTheme);
     });
 
+    function syncStickyHeaderHeight() {
+      document.documentElement.style.setProperty("--sticky-header-height", `${elements.appHeader.offsetHeight}px`);
+    }
+
     window.addEventListener("resize", () => {
       elements.passageFields.querySelectorAll("textarea").forEach(autoSizeTextarea);
+      syncStickyHeaderHeight();
     });
 
     elements.addTab.addEventListener("click", () => {
@@ -1479,6 +1551,7 @@
     initializeTheme();
     renderTabs();
     renderSetup();
+    syncStickyHeaderHeight();
   </script>
 </body>
 </html>
