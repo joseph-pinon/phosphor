@@ -21,6 +21,7 @@
       --cockpit: #0a0a0a;
       --cockpit-text: #b8ffb8;
       --sticky-header-height: 0px;
+      --tab-active-border: black;
     }
 
     :root[data-theme="dark"] {
@@ -37,6 +38,7 @@
       --issue-error: #ff6b6b;
       --cockpit: #000000;
       --cockpit-text: #a8f5a8;
+      --tab-active-border: white;
     }
 
     * {
@@ -219,7 +221,7 @@
     }
 
     .tab-item:has([aria-selected="true"]) {
-      border-bottom-color: var(--background);
+      border-bottom-color: var(--tab-active-border);
       color: var(--text);
       background: var(--background);
     }
