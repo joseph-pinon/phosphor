@@ -6,7 +6,8 @@
 	Just another J28.2 Formatter 
 </p>
 
-<img width="2262" height="1498" alt="image" src="https://github.com/user-attachments/assets/eddd575c-6f69-4332-bb74-7c574798bcf8" />
+<img width="2220" height="1548" alt="image" src="https://github.com/user-attachments/assets/2329885a-06a7-4af7-bfc5-7e65088c804d" />
+
 
 
 ## Features
