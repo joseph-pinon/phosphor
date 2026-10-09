@@ -3,8 +3,11 @@
 </p>
 
 <p align="center">
-	Not just another J28.2 Formatter 
+	Just another J28.2 Formatter 
 </p>
+
+<img width="2262" height="1498" alt="image" src="https://github.com/user-attachments/assets/eddd575c-6f69-4332-bb74-7c574798bcf8" />
+
 
 ## Features
 - Quickly generate messages into continuous line format for target platform.
